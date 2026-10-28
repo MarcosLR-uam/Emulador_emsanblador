@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BitLab · Emulador de 2 bits</title>
+  <style>
+    :root{color-scheme:dark;--bg:#10151e;--panel:#19212e;--line:#334052;--muted:#a9b8cc;--accent:#81efd2}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:#edf4ff;font:16px system-ui,sans-serif}main{max-width:1240px;margin:auto;padding:38px 24px}header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:32px}h1{font-size:34px;margin:7px 0}h2{font-size:18px;margin:0 0 18px}p{color:var(--muted);line-height:1.6}.eyebrow{color:var(--accent);font-size:12px;letter-spacing:3px}.badge{border:1px solid var(--line);border-radius:30px;padding:9px 14px;color:var(--accent);white-space:nowrap}.layout{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}button,select{font:inherit;border:1px solid var(--line);background:#253347;color:white;border-radius:8px;padding:10px 14px;cursor:pointer}button.primary{background:var(--accent);color:#08261e;font-weight:700}button:hover{filter:brightness(1.12)}button:disabled{opacity:.45;cursor:wait}textarea{display:block;width:100%;min-height:330px;resize:vertical;background:#0d131d;color:#d7e8ff;border:1px solid var(--line);border-radius:10px;padding:18px;font:16px/1.7 Consolas,monospace;tab-size:2}label{display:block;font-size:13px;color:var(--muted);margin-bottom:9px}.registers{display:grid;grid-template-columns:1fr 1fr;gap:14px}.register{background:#101925;border:1px solid var(--line);border-radius:12px;padding:18px}.bits{color:var(--accent);font:48px Consolas,monospace;letter-spacing:8px;display:block;margin:10px 0}.detail{color:var(--muted);font-size:13px}.flags{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}.flag{padding:10px 13px;border:1px solid var(--line);border-radius:8px;color:var(--muted)}.flag.on{color:var(--accent);border-color:var(--accent);background:#183b36}#status{min-height:50px;padding:12px;border-radius:8px;background:#101925;font-size:14px}#error{color:#ffb6b6;white-space:pre-wrap;margin-top:12px}#error:empty{display:none}.wide{margin-top:22px}.table-wrap{overflow:auto;max-height:380px}table{border-collapse:collapse;width:100%;text-align:left;font-size:13px;white-space:nowrap}th,td{padding:12px;border-bottom:1px solid var(--line)}th{color:var(--muted);position:sticky;top:0;background:var(--panel)}td{font-family:Consolas,monospace}summary{cursor:pointer;color:var(--accent)}code{color:var(--accent)}.help{font-size:14px;line-height:1.8;color:var(--muted)}a{color:var(--accent)}:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:800px){.layout{grid-template-columns:1fr}header{align-items:flex-start}.badge{display:none}main{padding:24px 14px}h1{font-size:28px}.panel{padding:18px}}
+  </style>
+</head>
+<body>
+<main>
+  <header><div><span class="eyebrow">BITLAB / CPU EDUCATIVA</span><h1>Pequeños bits. Grandes ideas.</h1><p>Escribí ensamblador y explorá cada cambio de tu CPU de 2 bits.</p></div><span class="badge">2 registros · 4 flags</span></header>
+  <div class="layout">
+    <section class="panel" aria-labelledby="editor-title">
+      <h2 id="editor-title">01 / Tu programa</h2>
+      <label for="example">Cargar ejemplo</label>
+      <select id="example"><option value="carry">Suma y acarreo</option><option value="loop">Bucle con contador</option><option value="signed">Comparación con signo</option><option value="logic">Operaciones lógicas</option></select>
+      <label for="code" style="margin-top:18px">Código · comentarios con ; · etiquetas con :</label>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="editor-hint"></textarea>
+      <div class="toolbar"><button class="primary" id="run">▶ Ejecutar</button><button id="step">Paso a paso →</button><button id="reset">Reiniciar</button><button id="download">Descargar .asm</button></div>
+      <span class="detail" id="editor-hint">Al editar el código se reinician los registros y el historial.</span>
+      <div id="error" role="alert"></div>
+    </section>
+    <section class="panel" aria-labelledby="cpu-title">
+      <h2 id="cpu-title">02 / Estado de la CPU</h2>
+      <div class="registers"><div class="register">Registro A<strong class="bits" id="bits-A">00</strong><span class="detail" id="detail-A">Sin signo: 0 · Con signo: 0</span></div><div class="register">Registro B<strong class="bits" id="bits-B">00</strong><span class="detail" id="detail-B">Sin signo: 0 · Con signo: 0</span></div></div>
+      <div class="flags" aria-label="Banderas"><span class="flag" id="flag-ZF">ZF 0</span><span class="flag" id="flag-CF">CF 0</span><span class="flag" id="flag-SF">SF 0</span><span class="flag" id="flag-OF">OF 0</span></div>
+      <div id="status" role="status" aria-live="polite">Listo para ejecutar · PC 0</div>
+      <p class="help">ZF: resultado cero · CF: acarreo o préstamo · SF: bit de signo · OF: desbordamiento con signo.</p>
+      <details><summary>Cómo funciona esta CPU</summary><div class="help"><p>Los registros almacenan 00–11: de 0 a 3 sin signo o de −2 a 1 en complemento a dos. Los resultados se reducen módulo 4.</p><p>MOV conserva los flags. CMP calcula una resta sin guardar el resultado. INC y DEC conservan CF. AND, OR y XOR ponen CF y OF en cero.</p><p>JC salta si CF=1; JGE si SF=OF (comparación con signo); JE si ZF=1; JNE si ZF=0. JMP salta siempre. HLT o el final del código detienen la CPU.</p><p>Destinos: A o B. Fuentes: registro, decimal −2…3 o binario 0b00…0b11. Ejemplo: <code>ADD A, B</code>. Máximo 2.000 pasos.</p></div></details>
+    </section>
+  </div>
+  <section class="panel wide"><h2>03 / Historial de ejecución</h2><p class="detail">Estado después de cada instrucción. El PC usa índices desde cero; las líneas corresponden al editor.</p><div class="table-wrap"><table><thead><tr><th>Paso</th><th>Línea</th><th>Instrucción</th><th>A</th><th>B</th><th>ZF CF SF OF</th><th>PC</th></tr></thead><tbody id="history"><tr><td colspan="7">Todavía no hay instrucciones ejecutadas.</td></tr></tbody></table></div></section>
+  <section class="panel wide"><details><summary>Instrucciones disponibles</summary><p class="help"><code>MOV CMP ADD SUB AND OR XOR</code> destino, fuente<br><code>INC DEC</code> registro<br><code>JC JGE JMP JE JNE</code> etiqueta<br><code>HLT</code> sin operandos<br>Las etiquetas y las instrucciones no distinguen mayúsculas. Se permiten etiquetas solas o antes de una instrucción.</p></details></section>
+</main>
+<script>
+const examples={carry:'; 3 + 1 = 0, con acarreo\nMOV A, 3\nMOV B, 1\nADD A, B\nJC acarreo\nMOV B, 0\nacarreo:\nHLT',loop:'MOV A, 0\nMOV B, 3\nbucle:\nINC A\nDEC B\nCMP B, 0\nJNE bucle\nHLT',signed:'; 0b11 representa -1 con signo\nMOV A, 0b11\nCMP A, 0\nJGE positivo\nMOV B, 1\nJMP fin\npositivo: MOV B, 0\nfin: HLT',logic:'MOV A, 0b10\nMOV B, 0b01\nOR A, B\nXOR A, 0b01\nAND A, B\nHLT'};
+const byId=id=>document.getElementById(id);
+let steps=0, halted=false, busy=false, revision=0;
+const binary=value=>value.toString(2).padStart(2,'0');
+function render(data){
+  for(const name of ['A','B']){const value=data.registers[name];byId('bits-'+name).textContent=binary(value);byId('detail-'+name).textContent=`Sin signo: ${value} · Con signo: ${value<2?value:value-4}`;}
+  for(const [name,value] of Object.entries(data.flags)){const element=byId('flag-'+name);element.textContent=`${name} ${value}`;element.classList.toggle('on',value===1);}
+  steps=data.steps;halted=data.halted;
+  byId('status').textContent=`${data.limit_reached?'Límite de 2.000 pasos alcanzado: revisá los bucles.':halted?'Programa finalizado.':steps?'En pausa.':'Listo para ejecutar.'} · PC ${data.pc} · ${steps} pasos${data.next_line?' · Próxima línea: '+data.next_line:''}`;
+  const body=byId('history');body.replaceChildren();
+  if(!data.history.length){const row=body.insertRow();const cell=row.insertCell();cell.colSpan=7;cell.textContent='Todavía no hay instrucciones ejecutadas.';}
+  for(const entry of data.history){const row=body.insertRow();const after=entry.after;for(const value of [entry.step,entry.line,entry.instruction,binary(after.registers.A),binary(after.registers.B),['ZF','CF','SF','OF'].map(name=>after.flags[name]).join('  '),after.pc]){row.insertCell().textContent=String(value);}}
+}
+function reset(){revision++;byId('error').textContent='';render({registers:{A:0,B:0},flags:{ZF:0,CF:0,SF:0,OF:0},pc:0,steps:0,halted:false,history:[]});}
+async function execute(all){
+  if(busy)return;
+  if(halted||steps>=2000){byId('error').textContent='Reiniciá para volver a ejecutar el programa.';return;}
+  busy=true;const currentRevision=revision;
+  for(const id of ['run','step'])byId(id).disabled=true;
+  byId('error').textContent='';
+  try{const response=await fetch('/api/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:byId('code').value,steps:all?2000:steps+1})});const data=await response.json();if(currentRevision!==revision)return;if(!response.ok)throw new Error(data.error||'No se pudo ejecutar.');render(data);}
+  catch(error){if(currentRevision===revision)byId('error').textContent=error.message||'No se pudo conectar con el servidor.';}
+  finally{busy=false;for(const id of ['run','step'])byId(id).disabled=false;}
+}
+byId('run').addEventListener('click',()=>execute(true));
+byId('step').addEventListener('click',()=>execute(false));
+byId('reset').addEventListener('click',reset);
+byId('code').addEventListener('input',reset);
+byId('example').addEventListener('change',()=>{byId('code').value=examples[byId('example').value];reset();});
+byId('download').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([byId('code').value],{type:'text/plain;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='programa.asm';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+byId('code').value=examples.carry;reset();
+</script>
+</body>
+</html>
